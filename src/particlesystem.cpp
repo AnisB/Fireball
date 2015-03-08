@@ -56,7 +56,7 @@ void TParticleSystem::setRotation(cl_float parRotation)
 	FRotation = parRotation;
 }
 
-bool TParticleSystem::initParticleSystem(TOpenCLData clData, TOpenCLProgram& parClProgram)
+bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenCLProgram& parClProgram)
 {
 
     initKernel = clCreateKernel(parClProgram.program, "initParticles", &CL_ERROR_FLAG);
@@ -154,7 +154,7 @@ bool TParticleSystem::initParticleSystem(TOpenCLData clData, TOpenCLProgram& par
     return SUCCESS;
 }
 
-void TParticleSystem::update(float parTime,TOpenCLData clData, TOpenCLProgram& parClProgram)
+void TParticleSystem::update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram)
 {
     CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 9, sizeof(parTime), &FNbParticles);
     if (CL_ERROR_FLAG != CL_SUCCESS)

@@ -23,9 +23,9 @@ public:
 	// Rotation
 	void setRotation(cl_float parRotation);
 
-	bool initParticleSystem(TOpenCLData clData, TOpenCLProgram& parClProgram);
+	bool initParticleSystem(const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
 
-	void update(float parTime,TOpenCLData clData, TOpenCLProgram& parClProgram);
+	void update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
 
 protected:
 	// CPU ParticleSetData
