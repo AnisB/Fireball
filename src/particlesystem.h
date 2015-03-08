@@ -1,6 +1,8 @@
 #ifndef PARTICLE_SYSTEM
 #define PARTICLE_SYSTEM
 
+#include "glfactory.h"
+
 #include "clfactory.h"
 #include "debug.h"
 
@@ -26,6 +28,7 @@ public:
 	bool initParticleSystem(const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
 
 	void update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
+	void draw();
 
 protected:
 	// CPU ParticleSetData
@@ -52,6 +55,11 @@ protected:
 	cl_float FMeanDuration;
 	cl_float FDurationVariance;
 	cl_float FRotation;
+
+	TShader FShader;
+	GLuint FVAO;
+	GLuint FVBO[2];
+
 };
 
 #endif //PARTICLE_SYSTEM

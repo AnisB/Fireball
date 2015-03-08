@@ -1,6 +1,7 @@
 #include "particlesystem.h"
 
 
+
 TParticleSystem::TParticleSystem(uint parNbParticles)
 : FNbParticles(parNbParticles)
 {
@@ -128,7 +129,6 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
        return FAILURE;
     }
 
-    PRINT_ORANGE("Init is done.");
 
     // for(int i =0; i < FNbParticles; i++)
     // {
@@ -150,6 +150,28 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
         PRINT_RED("Error in argument.");
         return FAILURE;
     }
+    PRINT_ORANGE("Init is done.");
+
+    FShader = CreateShader("data/shaders/ptVertex.glsl", "data/shaders/ptFragment.glsl");
+	glGenVertexArrays (1, &FVAO);
+	glBindVertexArray (FVAO);
+	
+	glGenBuffers(2, FVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, FVBO[0]);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles, FPosBuffer, GL_DYNAMIC_DRAW);
+	GLuint posAtt = glGetAttribLocation(FShader.FProgramID, "position");
+	glEnableVertexAttribArray (posAtt);
+	glVertexAttribPointer (posAtt, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, FVBO[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles, FPosBuffer, GL_DYNAMIC_DRAW);
+	GLuint colorAtt = glGetAttribLocation(FShader.FProgramID, "color");
+	glEnableVertexAttribArray (colorAtt);
+	glVertexAttribPointer (colorAtt, 4, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray (0);
 
     return SUCCESS;
 }
@@ -171,4 +193,19 @@ void TParticleSystem::update(float parTime, const TOpenCLData& clData, const TOp
         return;
     }
     clFinish(clData.commands);
+
+    CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FPositions, 0, NULL, NULL );  
+	glBindBuffer(GL_ARRAY_BUFFER, FVBO[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles, FPosBuffer, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+}
+
+void TParticleSystem::draw()
+{
+	glUseProgram(FShader.FProgramID);
+  	glBindVertexArray (FVAO);
+	glDrawElements(GL_POINTS, FNbParticles, GL_UNSIGNED_INT, 0);
+  	glBindVertexArray (0);
+	glUseProgram(0);
 }
