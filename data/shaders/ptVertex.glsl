@@ -10,5 +10,5 @@ void main()
 { 
 	gl_Position = projectionview*vec4(position.xyz,1.0);
 	colorF = color;
-	gl_PointSize = 5.0f;
+	gl_PointSize = clamp(1.0/(gl_Position.z),1.0,10.0);
 }  

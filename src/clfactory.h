@@ -14,7 +14,6 @@ extern cl_int CL_LOCAL_DIM;
 extern cl_int CL_GLOBAL_DIM;
 
 
-
 struct TOpenCLData
 {
 	cl_device_id device_id;
@@ -27,7 +26,9 @@ struct TOpenCLProgram
 	cl_program program;
 };
 
-bool initCLContext(TOpenCLData& parCLData);
-bool compileProgram(TOpenCLData& parCLData, const std::string& parFileName, TOpenCLProgram& parProgram);
+extern TOpenCLData clData;
+
+bool initCLContext();
+bool compileProgram(const std::string& parFileName, TOpenCLProgram& parProgram);
 
 #endif // CL_FACTORY

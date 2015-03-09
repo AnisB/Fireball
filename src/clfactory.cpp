@@ -9,41 +9,43 @@ cl_int CL_ERROR_FLAG;
 cl_int CL_LOCAL_DIM = 1;
 cl_int CL_GLOBAL_DIM;
 
-bool initCLContext(TOpenCLData& parCLData)
+TOpenCLData clData;
+
+bool initCLContext()
 {
 	// Initiating opencl
-	CL_ERROR_FLAG = clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 1, &parCLData.device_id, NULL);
+	CL_ERROR_FLAG = clGetDeviceIDs(NULL, CL_DEVICE_TYPE_ALL, 1, &clData.device_id, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
         PRINT_RED("Error in device.");
         return FAILURE;
     }
-    parCLData.context = clCreateContext(0, 1, &parCLData.device_id, NULL, NULL, &CL_ERROR_FLAG);
-  	if (!parCLData.context)
+    clData.context = clCreateContext(0, 1, &clData.device_id, NULL, NULL, &CL_ERROR_FLAG);
+  	if (!clData.context)
     {
         PRINT_RED("Error in context.");
         return FAILURE;
     }
-    parCLData.commands = clCreateCommandQueue(parCLData.context, parCLData.device_id, 0, &CL_ERROR_FLAG);
-    if (!parCLData.commands)
+    clData.commands = clCreateCommandQueue(clData.context, clData.device_id, 0, &CL_ERROR_FLAG);
+    if (!clData.commands)
     {
         PRINT_RED("Error in command queue.");
         return FAILURE;
     }
     size_t dim;
-    clGetDeviceInfo(parCLData.device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), (void*)&dim, NULL);
+    clGetDeviceInfo(clData.device_id, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), (void*)&dim, NULL);
     CL_GLOBAL_DIM = dim;
     PRINT_GREEN("Successful opencl init ");
     return true;
 }
 
 
-bool compileProgram(TOpenCLData& parCLData, const std::string& parFileName, TOpenCLProgram& parProgram)
+bool compileProgram(const std::string& parFileName, TOpenCLProgram& parProgram)
 {
 	std::ifstream in(parFileName);
 	std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
     const char* kernelSource = contents.c_str();
-    parProgram.program = clCreateProgramWithSource(parCLData.context, 1, &kernelSource, NULL, &CL_ERROR_FLAG);
+    parProgram.program = clCreateProgramWithSource(clData.context, 1, &kernelSource, NULL, &CL_ERROR_FLAG);
     if (!parProgram.program)
     {
         PRINT_RED("Error in program.");
@@ -55,7 +57,7 @@ bool compileProgram(TOpenCLData& parCLData, const std::string& parFileName, TOpe
         size_t len;
         char buffer[2048];
         std::cout<<"Error in compiling the opencl program."<<std::endl;
-        clGetProgramBuildInfo(parProgram.program, parCLData.device_id, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
+        clGetProgramBuildInfo(parProgram.program, clData.device_id, CL_PROGRAM_BUILD_LOG, sizeof(buffer), buffer, &len);
         PRINT_RED(buffer);
         return FAILURE;
     }

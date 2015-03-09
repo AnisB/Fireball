@@ -117,7 +117,7 @@ float4 getRandomDirection(mwc64x_state_t* rng)
 // Init step
 __kernel void initParticles(__global float4* pos, 
 							__global float4* color, 
-							__global float4* vecBuff, 
+							__global float* vecBuff, 
 							__global float* lifetime, 
 							const float4 position, 
 							const float4 meanColor, 
@@ -143,9 +143,7 @@ __kernel void initParticles(__global float4* pos,
 
 		float theta = MWC64X_NextFloat(&rng)*2.0*M_PI;
 		float phi = acos(2.0*MWC64X_NextFloat(&rng)-1.0);
-		vecBuff[particle].x = cos(theta)*sin(phi);
-		vecBuff[particle].y = sin(theta)*sin(phi);
-		vecBuff[particle].z = cos(phi);
+		vstore4((float4)(cos(theta)*sin(phi), sin(theta)*sin(phi), cos(phi),1.0), particle, vecBuff);
 
 		float var = (MWC64X_NextFloat(&rng)-0.5f)*2.0f;
 		color[particle] = clamp(meanColor + colorVariation*var,0.0f,1.0f);
@@ -160,7 +158,8 @@ __kernel void initParticles(__global float4* pos,
 // Init step
 __kernel void update(__global float4* pos, 
 						__global float* lifetime, 
-						__global float4* vecBuff, 
+						__global float* vecBuff, 
+						__global float4* colorBuffer, 
 						
 						const float4 position, 
 						const float4 meanColor, 
@@ -184,9 +183,12 @@ __kernel void update(__global float4* pos,
 
 	for(uint particle = boundLow; particle < boundUp; ++particle )
 	{
-		pos[particle] = pos[particle] + vecBuff[particle] * parTime;
+		float4 vec = vload4(particle, vecBuff);
+		pos[particle] = pos[particle] + vec * parTime;
 
 		lifetime[particle] = lifetime[particle] - parTime;
+
+
 		if( lifetime[particle] < 0.0)
 		{
 			pos[particle] = position;
@@ -195,9 +197,10 @@ __kernel void update(__global float4* pos,
 
 			float theta = MWC64X_NextFloat(&rng)*2.0*M_PI;
 			float phi = acos(2.0*MWC64X_NextFloat(&rng)-1.0);
-			vecBuff[particle].x = cos(theta)*sin(phi);
-			vecBuff[particle].y = sin(theta)*sin(phi);
-			vecBuff[particle].z = cos(phi);
+			vstore4((float4)(cos(theta)*sin(phi), sin(theta)*sin(phi), cos(phi),1.0), particle, vecBuff);
 		}
+
+		colorBuffer[particle].y = (meanDuration)/(6.0*lifetime[particle]);
+
 	}
 }

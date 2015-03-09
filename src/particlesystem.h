@@ -26,9 +26,9 @@ public:
 	// Rotation
 	void setRotation(cl_float parRotation);
 
-	bool initParticleSystem(const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
+	bool initParticleSystem();
 
-	void update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
+	void update(float parTime);
 	void draw(const TMatrix4<double>& parProjectionView);
 
 protected:
@@ -45,6 +45,7 @@ protected:
 	cl_mem FColorBuffer;
 	cl_mem FLTBuffer;
 
+	TOpenCLProgram FProgram;
 	cl_kernel initKernel;
 	cl_kernel updateKernel;
 

@@ -5,7 +5,6 @@
 #include <iostream>
 
 
-
 template<typename T>
 struct TVec2
 {
