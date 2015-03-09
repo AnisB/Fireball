@@ -1,6 +1,8 @@
 #ifndef M_PI 
 #define M_PI 3.14159265359
 #endif
+
+// The MWC64X Random Number Generator was used in the PS
 // RNG STUFF
 ulong MWC_AddMod64(ulong a, ulong b, ulong M);
 ulong MWC_MulMod64(ulong a, ulong b, ulong M);
