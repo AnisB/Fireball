@@ -22,5 +22,14 @@ int main(int argc, char** argv)
 	ps->setDurationVariance(1.0);
 	ps->initParticleSystem();
 	renderer.addPS(ps);
+
+ 	TParticleSystem* ps2 = new TParticleSystem(NB_PARTICLES);
+	ps2->setOriginPosition(5.0,5.0,5.0);
+	ps2->setMeanColor(0.2f, 0.2f, 0.8f);
+	ps2->setVarianceColor(0.05f, 0.05f, 0.2f);
+	ps2->setMeanDuration(20.0);
+	ps2->setDurationVariance(0.0);
+	ps2->initParticleSystem();
+	renderer.addPS(ps2);
 	renderer.Run();
 }

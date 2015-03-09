@@ -7,18 +7,15 @@ TParticleSystem::TParticleSystem(uint parNbParticles)
 {
 	FPositions = new cl_float4[FNbParticles*3](); 
 	FColors = FPositions + FNbParticles;
-	FVelocity = new cl_float4[FNbParticles](); 
-	FLifetime = new cl_float[FNbParticles];
 }
 
 TParticleSystem::~TParticleSystem()
 {
 	delete [] FPositions;
-    delete [] FLifetime;
-	delete [] FVelocity;
     clReleaseMemObject(FPosBuffer);
     clReleaseMemObject(FVelocBuffer);
-    clReleaseMemObject(FColorBuffer);
+    clReleaseMemObject(FVelocBuffer);
+    clReleaseMemObject(FLTBuffer);
 }
 
 void TParticleSystem::setOriginPosition(cl_float parX, cl_float parY, cl_float parZ)
@@ -72,13 +69,7 @@ bool TParticleSystem::initParticleSystem()
     FVelocBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float4) * FNbParticles, NULL, NULL);
 	FLTBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float) * FNbParticles, NULL, NULL);
 
-    PRINT_ORANGE("Memory init");
-
     // Copy data to input buffer
-    CL_ERROR_FLAG = clEnqueueWriteBuffer(clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FPositions, 0, NULL, NULL);
-    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FColorBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FColors, 0, NULL, NULL);
-    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FVelocBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FVelocity, 0, NULL, NULL);
-    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FLTBuffer, CL_TRUE, 0, sizeof(cl_float) * FNbParticles, FLifetime, 0, NULL, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
         PRINT_RED("Error in copy.");
@@ -121,21 +112,11 @@ bool TParticleSystem::initParticleSystem()
     // Is done now
     CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FPositions, 0, NULL, NULL );  
     CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FColorBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FColors, 0, NULL, NULL );  
-    CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FVelocBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FVelocity, 0, NULL, NULL );  
-    CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FLTBuffer, CL_TRUE, 0, sizeof(cl_float) * FNbParticles, FLifetime, 0, NULL, NULL );  
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
        PRINT_RED("Error in reading back.");
        return FAILURE;
     }
-
-
-    // for(int i =0; i < FNbParticles; i++)
-    // {
-    //     std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2];
-    //     std::cout <<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2];
-    //     std::cout <<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
-    // }  
 
     updateKernel = clCreateKernel(FProgram.program, "update", &CL_ERROR_FLAG);
 	CL_ERROR_FLAG  = clSetKernelArg(updateKernel, 0, sizeof(cl_mem), &FPosBuffer);

@@ -34,10 +34,7 @@ public:
 protected:
 	// CPU ParticleSetData
 	cl_float4* FPositions;
-	cl_float4* FVelocity;
 	cl_float4* FColors;
-
-	cl_float* FLifetime;
 
 	// GPU ParticleSetData
 	cl_mem FPosBuffer;
