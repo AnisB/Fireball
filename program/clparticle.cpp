@@ -7,7 +7,7 @@
 #include "particlesystem.h"
 
 
-#define NB_PARTICLES  20	
+#define NB_PARTICLES  200000
 
 TOpenCLData clData;
 TOpenCLProgram clProgram;
@@ -69,7 +69,7 @@ static void cursor_callback(GLFWwindow *window, double xpos, double ypos)
 		double deltaY = y-FOldY;
 		// std::cout<<deltaX<<" "<<deltaY<<std::endl;
 		camera.Yaw(deltaX*X_ANGLE);
-		camera.Pitch(deltaY*Y_ANGLE);
+		camera.Pitch(-deltaY*Y_ANGLE);
 		FOldX = x;
 		FOldY = y;
 	}
@@ -124,26 +124,31 @@ int main(int argc, char** argv)
 	PRINT_GREEN("Renderer: "<<renderer);
 	PRINT_GREEN("Version: "<<version);
 
+
 	TOpenCLProgram clProgram;
 	compileProgram(clData, "data/kernels/particleSystem.cl", clProgram);
-
-	glPointSize(6.0f);
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_PROGRAM_POINT_SIZE);
  	TParticleSystem* ps = new TParticleSystem(NB_PARTICLES);
-	ps->setOriginPosition(0.0f, 0.0f, 0.0f);
+	ps->setOriginPosition(0.1f, 0.2f, 0.3f);
 	ps->setMeanColor(1.0f, 0.2f, 0.2f);
 	ps->setVarianceColor(0.1f, 0.05f, 0.5f);
-	ps->setMeanDuration(1.0);
-	ps->setDurationVariance(0.05);
+	ps->setMeanDuration(2.0);
+	ps->setDurationVariance(0.3);
 	camera.DefinePerspective(45, 640/480.0, 0.1, 300);
+	camera.Translate(TVec3<double>(0.0,0.0,-4.0));
 	ps->initParticleSystem(clData, clProgram);
 
-	ps->update(0.5, clData, clProgram);
-	ps->draw(camera.GetProjectionViewMatrix());
-
+	glClearColor(0.0,0.0,0.0,0.0);
+	double timeA = glfwGetTime();
     while (!glfwWindowShouldClose(window))
     {
+		double timeB = glfwGetTime();
     	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		ps->update(timeB-timeA, clData, clProgram);
+		timeA= timeB;
+		ps->draw(camera.GetProjectionViewMatrix());
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

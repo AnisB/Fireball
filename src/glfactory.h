@@ -21,6 +21,9 @@ struct TShader
 	GLuint FProgramID;
 };
 
+void CheckGLState(const std::string& desc);
+
+
 TShader CreateShader(const std::string& parVertex, const std::string& parFragment);
 
 

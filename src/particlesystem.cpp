@@ -1,20 +1,21 @@
 #include "particlesystem.h"
 
-
+#include <algorithm> 
 
 TParticleSystem::TParticleSystem(uint parNbParticles)
 : FNbParticles(parNbParticles)
 {
-	FPositions = new cl_float3[FNbParticles*3](); 
+	FPositions = new cl_float4[FNbParticles*3](); 
 	FColors = FPositions + FNbParticles;
-	FVelocity = FColors + FNbParticles; 
+	FVelocity = new cl_float4[FNbParticles](); 
 	FLifetime = new cl_float[FNbParticles];
 }
 
 TParticleSystem::~TParticleSystem()
 {
 	delete [] FPositions;
-	delete [] FLifetime;
+    delete [] FLifetime;
+	delete [] FVelocity;
     clReleaseMemObject(FPosBuffer);
     clReleaseMemObject(FVelocBuffer);
     clReleaseMemObject(FColorBuffer);
@@ -59,6 +60,7 @@ void TParticleSystem::setRotation(cl_float parRotation)
 
 bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenCLProgram& parClProgram)
 {
+    CheckGLState("Pre create0");
 
     initKernel = clCreateKernel(parClProgram.program, "initParticles", &CL_ERROR_FLAG);
     if (!initKernel || CL_ERROR_FLAG != CL_SUCCESS)
@@ -66,17 +68,17 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
         PRINT_RED("Error in init kernel "<<CL_ERROR_FLAG);
         return FAILURE;
     }
-	FPosBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float3) * FNbParticles, NULL, NULL);
-	FVelocBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float3) * FNbParticles, NULL, NULL);
-	FColorBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float3) * FNbParticles, NULL, NULL);
+	FPosBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float4) * FNbParticles, NULL, NULL);
+	FColorBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float4) * FNbParticles, NULL, NULL);
+    FVelocBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float4) * FNbParticles, NULL, NULL);
 	FLTBuffer = clCreateBuffer(clData.context,  CL_MEM_READ_WRITE,  sizeof(cl_float) * FNbParticles, NULL, NULL);
 
     PRINT_ORANGE("Memory init");
 
     // Copy data to input buffer
-    CL_ERROR_FLAG = clEnqueueWriteBuffer(clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FPositions, 0, NULL, NULL);
-    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FVelocBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FVelocity, 0, NULL, NULL);
-    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FColorBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FColors, 0, NULL, NULL);
+    CL_ERROR_FLAG = clEnqueueWriteBuffer(clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FPositions, 0, NULL, NULL);
+    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FColorBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FColors, 0, NULL, NULL);
+    CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FVelocBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FVelocity, 0, NULL, NULL);
     CL_ERROR_FLAG |= clEnqueueWriteBuffer(clData.commands, FLTBuffer, CL_TRUE, 0, sizeof(cl_float) * FNbParticles, FLifetime, 0, NULL, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
@@ -84,27 +86,27 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
         return FAILURE;
     }
     CL_ERROR_FLAG  = clSetKernelArg(initKernel, 0, sizeof(cl_mem), &FPosBuffer);
-    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 1, sizeof(cl_mem), &FVelocBuffer);
-    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 2, sizeof(cl_mem), &FColorBuffer);
+    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 1, sizeof(cl_mem), &FColorBuffer);
+    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 2, sizeof(cl_mem), &FVelocBuffer);
     CL_ERROR_FLAG |= clSetKernelArg(initKernel, 3, sizeof(cl_mem), &FLTBuffer);
 
-    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 4, sizeof(cl_float3), &FOriginPosition);
-    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 5, sizeof(cl_float3), &FMeanColor);
-    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 6, sizeof(cl_float3), &FVarianceColor);
+    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 4, sizeof(cl_float4), &FOriginPosition);
+    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 5, sizeof(cl_float4), &FMeanColor);
+    CL_ERROR_FLAG |= clSetKernelArg(initKernel, 6, sizeof(cl_float4), &FVarianceColor);
     CL_ERROR_FLAG |= clSetKernelArg(initKernel, 7, sizeof(cl_float), &FMeanDuration);
     CL_ERROR_FLAG |= clSetKernelArg(initKernel, 8, sizeof(cl_float), &FDurationVariance);
     CL_ERROR_FLAG |= clSetKernelArg(initKernel, 9, sizeof(uint), &FNbParticles);
+    CheckGLState("Pre create0");
 
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
         PRINT_RED("Error in argument.");
         return FAILURE;
     }
-
     PRINT_ORANGE("Parameters injected");
 
     size_t local = CL_LOCAL_DIM;
-    size_t global = 20;
+    size_t global = std::min((int)FNbParticles, (int)CL_GLOBAL_DIM);
     CL_ERROR_FLAG = clEnqueueNDRangeKernel(clData.commands, initKernel, 1, NULL, &global , &local, 0, NULL, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
@@ -117,11 +119,12 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
     clFinish(clData.commands);
 
     PRINT_ORANGE("Kernel done.");
+    CheckGLState("Pre create1");
 
     // Is done now
-    CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FPositions, 0, NULL, NULL );  
-    CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FVelocBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FVelocity, 0, NULL, NULL );  
-    CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FColorBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FColors, 0, NULL, NULL );  
+    CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FPositions, 0, NULL, NULL );  
+    CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FColorBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FColors, 0, NULL, NULL );  
+    CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FVelocBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FVelocity, 0, NULL, NULL );  
     CL_ERROR_FLAG |= clEnqueueReadBuffer( clData.commands, FLTBuffer, CL_TRUE, 0, sizeof(cl_float) * FNbParticles, FLifetime, 0, NULL, NULL );  
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
@@ -130,18 +133,20 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
     }
 
 
-    for(int i =0; i < FNbParticles; i++)
-    {
-        std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2]<<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2]<<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
-    }  
+    // for(int i =0; i < FNbParticles; i++)
+    // {
+    //     std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2];
+    //     std::cout <<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2];
+    //     std::cout <<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
+    // }  
 
     updateKernel = clCreateKernel(parClProgram.program, "update", &CL_ERROR_FLAG);
 	CL_ERROR_FLAG  = clSetKernelArg(updateKernel, 0, sizeof(cl_mem), &FPosBuffer);
-    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 1, sizeof(cl_mem), &FVelocBuffer);
-    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 2, sizeof(cl_mem), &FLTBuffer);
-    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 3, sizeof(cl_float3), &FOriginPosition);
-    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 4, sizeof(cl_float3), &FMeanColor);
-    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 5, sizeof(cl_float3), &FVarianceColor);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 1, sizeof(cl_mem), &FLTBuffer);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 2, sizeof(cl_mem), &FVelocBuffer);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 3, sizeof(cl_float4), &FOriginPosition);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 4, sizeof(cl_float4), &FMeanColor);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 5, sizeof(cl_float4), &FVarianceColor);
     CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 6, sizeof(cl_float), &FMeanDuration);
     CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 7, sizeof(cl_float), &FDurationVariance);
     CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 8, sizeof(uint), &FNbParticles);
@@ -151,7 +156,7 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
         return FAILURE;
     }
     PRINT_ORANGE("Init is done.");
-
+    CheckGLState("Pre create");
     FShader = CreateShader("data/shaders/ptVertex.glsl", "data/shaders/ptFragment.glsl");
 	glGenVertexArrays (1, &FVAO);
 	glBindVertexArray (FVAO);
@@ -159,30 +164,34 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
 	glGenBuffers(1, &FVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, FVBO);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles*2, FPosBuffer, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float4)*FNbParticles*2, FPositions, GL_DYNAMIC_DRAW);
 	GLuint posAtt = glGetAttribLocation(FShader.FProgramID, "position");
 	GLuint colorAtt = glGetAttribLocation(FShader.FProgramID, "color");
+    // PRINT_ORANGE("STUFF "<<posAtt<<" "<<colorAtt );
 	glEnableVertexAttribArray (posAtt);
 	glEnableVertexAttribArray (colorAtt);
 	glVertexAttribPointer (posAtt, 4, GL_FLOAT, GL_FALSE, 0, 0);
-	glVertexAttribPointer (colorAtt, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(cl_float3)*FNbParticles));
+	glVertexAttribPointer (colorAtt, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(cl_float4)*FNbParticles));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray (0);
-
+    CheckGLState("EndInit");
     return SUCCESS;
 }
 
 void TParticleSystem::update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram)
 {
+    // CheckGLState("Preupdate");
+    FSeed += 1000;
     CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 9, sizeof(parTime), &parTime);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 10, sizeof(FSeed), &FSeed);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
         PRINT_RED("Error in argument.");
         return;
     }
     size_t local = CL_LOCAL_DIM;
-    size_t global = 20;
+    size_t global = std::min((int)FNbParticles, (int)CL_GLOBAL_DIM);
     CL_ERROR_FLAG = clEnqueueNDRangeKernel(clData.commands, updateKernel, 1, NULL, &global, &local, 0, NULL, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
@@ -191,16 +200,17 @@ void TParticleSystem::update(float parTime, const TOpenCLData& clData, const TOp
     }
     clFinish(clData.commands);
 
-    CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FPositions, 0, NULL, NULL );  
+    CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float4) * FNbParticles, FPositions, 0, NULL, NULL );  
 
     glBindBuffer(GL_ARRAY_BUFFER, FVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles*2, FPosBuffer, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float4)*FNbParticles*2, FPositions, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // CheckGLState("Postupdate");
+    // for(int i =0; i < FNbParticles; i++)
+    // {
+    //     std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2]<<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2]<<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
+    // }  
 
-    for(int i =0; i < FNbParticles; i++)
-    {
-        std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2]<<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2]<<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
-    }   
 }
 void TParticleSystem::draw(const TMatrix4<double>& parProjectionView)
 {
@@ -209,7 +219,6 @@ void TParticleSystem::draw(const TMatrix4<double>& parProjectionView)
 	float mat[16];
 	parProjectionView.toTable(&mat[0]);
     glUniformMatrix4fv(glGetUniformLocation(FShader.FProgramID, "projectionview"),1,true, mat);
-	glDrawElements(GL_POINTS, FNbParticles, GL_UNSIGNED_INT, 0);
-  	glBindVertexArray (0);
+    glDrawArrays(GL_POINTS, 0, FNbParticles);
 	glUseProgram(0);
 }

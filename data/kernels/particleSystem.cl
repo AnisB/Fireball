@@ -14,9 +14,9 @@ typedef struct{ uint x; uint c; } mwc64x_state_t;
 void MWC64X_Step(mwc64x_state_t *s);
 void MWC64X_Skip(mwc64x_state_t *s, ulong distance);
 void MWC64X_SeedStreams(mwc64x_state_t *s, ulong baseOffset, ulong perStreamOffset);
-float MWC64X_NextUint(mwc64x_state_t *s);
+float MWC64X_NextFloat(mwc64x_state_t *s);
 
-float3 getRandomDirection(mwc64x_state_t* rng);
+float4 getRandomDirection(mwc64x_state_t* rng);
 
 
 
@@ -100,28 +100,28 @@ void MWC64X_SeedStreams(mwc64x_state_t *s, ulong baseOffset, ulong perStreamOffs
 	s->x=tmp.x;
 	s->c=tmp.y;
 }
-float MWC64X_NextUint(mwc64x_state_t *s)
+float MWC64X_NextFloat(mwc64x_state_t *s)
 {
 	float res=s->x ^ s->c;
 	MWC64X_Step(s);
 	return res/0xFFFFFFFF;
 }
 
-float3 getRandomDirection(mwc64x_state_t* rng)
+float4 getRandomDirection(mwc64x_state_t* rng)
 {
-	float theta = MWC64X_NextUint(rng)*2.0*M_PI;
-	float phi = acos(2.0*MWC64X_NextUint(rng)-1.0);
-	return float3(cos(theta)*sin(phi), sin(theta)*sin(phi), cos(phi));
+	float theta = MWC64X_NextFloat(rng)*2.0*M_PI;
+	float phi = acos(2.0*MWC64X_NextFloat(rng)-1.0);
+	return float4(cos(theta)*sin(phi), sin(theta)*sin(phi), cos(phi),1.0);
 }
 
 // Init step
-__kernel void initParticles(__global float3* pos, 
-							__global float3* vec, 
-							__global float3* color, 
+__kernel void initParticles(__global float4* pos, 
+							__global float4* color, 
+							__global float4* vecBuff, 
 							__global float* lifetime, 
-							const float3 position, 
-							const float3 meanColor, 
-							const float3 colorVariation, 
+							const float4 position, 
+							const float4 meanColor, 
+							const float4 colorVariation, 
 							const float meanDuration, 
 							const float durationVariance, 
 							uint nbParticles)                                           
@@ -138,14 +138,19 @@ __kernel void initParticles(__global float3* pos,
 	MWC64X_SeedStreams(&rng, boundLow, 2*size);
 	for(uint particle = boundLow; particle < boundUp; ++particle )
 	{
+
 		pos[particle] = position;
 
-		vec[particle] = getRandomDirection(&rng);
+		float theta = MWC64X_NextFloat(&rng)*2.0*M_PI;
+		float phi = acos(2.0*MWC64X_NextFloat(&rng)-1.0);
+		vecBuff[particle].x = cos(theta)*sin(phi);
+		vecBuff[particle].y = sin(theta)*sin(phi);
+		vecBuff[particle].z = cos(phi);
 
-		float var = (MWC64X_NextUint(&rng)-0.5f)*2.0f;
-		color[particle] = meanColor + colorVariation*var;
+		float var = (MWC64X_NextFloat(&rng)-0.5f)*2.0f;
+		color[particle] = clamp(meanColor + colorVariation*var,0.0f,1.0f);
 
-		float var2 = (MWC64X_NextUint(&rng)-0.5f)*2.0f;
+		float var2 = (MWC64X_NextFloat(&rng)-0.5f)*2.0f;
 		lifetime[particle] = meanDuration + durationVariance*var2;
 	}
 }
@@ -153,17 +158,18 @@ __kernel void initParticles(__global float3* pos,
 
 
 // Init step
-__kernel void update(__global float3* pos, 
-						__global float3* vec, 
+__kernel void update(__global float4* pos, 
 						__global float* lifetime, 
+						__global float4* vecBuff, 
 						
-						const float3 position, 
-						const float3 meanColor, 
-						const float3 colorVariation, 
+						const float4 position, 
+						const float4 meanColor, 
+						const float4 colorVariation, 
 						const float meanDuration, 
 						const float durationVariance, 
 						const uint nbParticles,
-						const float parTime)                                           
+						const float parTime,                                          
+						const uint parSeed)                                           
 {                                                                      
 	int i = get_global_id(0); 
 	int j = get_global_size (0);
@@ -174,20 +180,24 @@ __kernel void update(__global float3* pos,
 	uint boundLow = size*(i);
 
 	mwc64x_state_t rng;
-	MWC64X_SeedStreams(&rng, boundLow, 2*size);
+	MWC64X_SeedStreams(&rng, boundLow + parSeed, 2*size);
 
 	for(uint particle = boundLow; particle < boundUp; ++particle )
 	{
-		pos[particle] = pos[particle] + vec[particle] * parTime;
+		pos[particle] = pos[particle] + vecBuff[particle] * parTime;
 
 		lifetime[particle] = lifetime[particle] - parTime;
 		if( lifetime[particle] < 0.0)
 		{
 			pos[particle] = position;
-			float var2 = (MWC64X_NextUint(&rng)-0.5f)*2.0f;
+			float var2 = (MWC64X_NextFloat(&rng)-0.5f)*2.0f;
 			lifetime[particle] = meanDuration + durationVariance*var2;
 
-			vec[particle] = getRandomDirection(&rng);
+			float theta = MWC64X_NextFloat(&rng)*2.0*M_PI;
+			float phi = acos(2.0*MWC64X_NextFloat(&rng)-1.0);
+			vecBuff[particle].x = cos(theta)*sin(phi);
+			vecBuff[particle].y = sin(theta)*sin(phi);
+			vecBuff[particle].z = cos(phi);
 		}
 	}
 }

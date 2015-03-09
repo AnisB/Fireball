@@ -33,9 +33,9 @@ public:
 
 protected:
 	// CPU ParticleSetData
-	cl_float3* FPositions;
-	cl_float3* FVelocity;
-	cl_float3* FColors;
+	cl_float4* FPositions;
+	cl_float4* FVelocity;
+	cl_float4* FColors;
 
 	cl_float* FLifetime;
 
@@ -50,9 +50,10 @@ protected:
 
 	// GeneratorData
 	uint FNbParticles;
-	cl_float3 FOriginPosition;
-	cl_float3 FMeanColor;
-	cl_float3 FVarianceColor;
+	uint FSeed;
+	cl_float4 FOriginPosition;
+	cl_float4 FMeanColor;
+	cl_float4 FVarianceColor;
 	cl_float FMeanDuration;
 	cl_float FDurationVariance;
 	cl_float FRotation;

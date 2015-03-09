@@ -30,6 +30,22 @@ char * LoadFile( char const* fn)
 	return content;
 }
 
+void CheckGLState(const std::string& desc)
+{
+	GLenum e = glGetError();
+	if(desc=="FLUSH")
+		return;
+	if (e != GL_NO_ERROR) 
+	{
+		PRINT_RED("OpenGL error in: "<<desc.c_str()<<" "<<gluErrorString(e)<<" "<<e);
+	}
+	else
+	{
+		PRINT_ORANGE("No OpenGL errors@"<<desc);
+	}
+}
+
+
 void CheckShader(GLuint parShaderID, const std::string& parShadePath)
 {
     GLint Result = GL_FALSE;
