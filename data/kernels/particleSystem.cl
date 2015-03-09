@@ -61,11 +61,6 @@ uint2 MWC_SkipImpl_Mod64(uint2 curr, ulong A, ulong M, ulong distance)
 
 uint2 MWC_SeedImpl_Mod64(ulong A, ulong M, uint vecSize, uint vecOffset, ulong streamBase, ulong streamGap)
 {
-	// This is an arbitrary constant for starting LCG jumping from. I didn't
-	// want to start from 1, as then you end up with the two or three first values
-	// being a bit poor in ones - once you've decided that, one constant is as
-	// good as any another. There is no deep mathematical reason for it, I just
-	// generated a random number.
 	enum{ MWC_BASEID = 4077358422479273989UL };
 	
 	ulong dist=streamBase + (get_global_id(0)*vecSize+vecOffset)*streamGap;
@@ -167,8 +162,8 @@ __kernel void update(__global float3* pos,
 						const float3 colorVariation, 
 						const float meanDuration, 
 						const float durationVariance, 
-						uint nbParticles,
-						float parTime)                                           
+						const uint nbParticles,
+						const float parTime)                                           
 {                                                                      
 	int i = get_global_id(0); 
 	int j = get_global_size (0);
@@ -183,7 +178,7 @@ __kernel void update(__global float3* pos,
 
 	for(uint particle = boundLow; particle < boundUp; ++particle )
 	{
-		pos[particle] = position + vec[particle]*parTime;
+		pos[particle] = pos[particle] + vec[particle] * parTime;
 
 		lifetime[particle] = lifetime[particle] - parTime;
 		if( lifetime[particle] < 0.0)

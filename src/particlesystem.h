@@ -5,6 +5,7 @@
 
 #include "clfactory.h"
 #include "debug.h"
+#include "matrix.h"
 
 class TParticleSystem
 {
@@ -28,7 +29,7 @@ public:
 	bool initParticleSystem(const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
 
 	void update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram);
-	void draw();
+	void draw(const TMatrix4<double>& parProjectionView);
 
 protected:
 	// CPU ParticleSetData
@@ -58,7 +59,7 @@ protected:
 
 	TShader FShader;
 	GLuint FVAO;
-	GLuint FVBO[2];
+	GLuint FVBO;
 
 };
 

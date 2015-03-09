@@ -1,0 +1,765 @@
+
+// Implémentation header de MatrixN
+
+
+// Matrix3
+template<typename T>
+TMatrix3<T>::TMatrix3(const TMatrix3& parMatrix)
+{
+	memcpy(m, parMatrix.m, 9*sizeof(T));
+}
+
+template<typename T>
+TMatrix3<T>::TMatrix3()
+{
+	// RAF
+}
+
+template<typename T>
+TMatrix3<T>::~TMatrix3()
+{
+	//RAF
+}
+
+template<typename T>
+TMatrix3<T>::TMatrix3(TVec3<T> parVec0, TVec3<T> parVec1, TVec3<T> parVec2)
+{
+	m[0] = parVec0.x;
+	m[1] = parVec0.y;
+	m[2] = parVec0.z;
+
+	m[3] = parVec1.x;
+	m[4] = parVec1.y;
+	m[5] = parVec1.z;
+
+	m[6] = parVec2.x;
+	m[7] = parVec2.y;
+	m[8] = parVec2.z;
+}
+
+template<typename T>
+T TMatrix3<T>::det() const
+{
+	//Calcul determinant
+	return m[0]*(m[4]*m[8]-m[5]*m[7]) - m[3]*(m[1]*m[8]-m[7]*m[2] + m[6]*(m[1]*m[5]-m[4]*m[2]));
+}
+
+// Calculde l'inverse
+template<typename T>
+TMatrix3<T> inverse(const TMatrix3<T>& parMatrix)
+{
+	TMatrix3<T> inverseMatrix;
+	T invdet = 1.0/parMatrix.det();
+	inverseMatrix.m[0] = (parMatrix.m[4]*parMatrix.m[8]-parMatrix.m[5]*parMatrix.m[7])*invdet;
+	inverseMatrix.m[1] = -(parMatrix.m[3]*parMatrix.m[8]-parMatrix.m[6]*parMatrix.m[5])*invdet;
+	inverseMatrix.m[2] = (parMatrix.m[3]*parMatrix.m[7]-parMatrix.m[6]*parMatrix.m[4])*invdet;
+	inverseMatrix.m[3] = -(parMatrix.m[1]*parMatrix.m[8]-parMatrix.m[7]*parMatrix.m[2])*invdet;
+	inverseMatrix.m[4] = (parMatrix.m[0]*parMatrix.m[8]-parMatrix.m[6]*parMatrix.m[2])*invdet;
+	inverseMatrix.m[5] = -(parMatrix.m[0]*parMatrix.m[7]-parMatrix.m[1]*parMatrix.m[6])*invdet;
+	inverseMatrix.m[6] = (parMatrix.m[1]*parMatrix.m[5]-parMatrix.m[2]*parMatrix.m[4])*invdet;
+	inverseMatrix.m[7] = -(parMatrix.m[0]*parMatrix.m[5]-parMatrix.m[2]*parMatrix.m[3])*invdet;
+	inverseMatrix.m[8] = (parMatrix.m[0]*parMatrix.m[4]-parMatrix.m[1]*parMatrix.m[3])*invdet;
+	return inverseMatrix;
+}
+
+template<typename T>
+TVec3<T> operator*(const TMatrix3<T>& parMatrix, const TVec3<T>& parVect)
+{
+	TVec3<T> result(0.0);
+	result.x = parVect.x* parMatrix.m[0] + parVect.y* parMatrix.m[3] +parVect.z* parMatrix.m[6];
+	result.y = parVect.x* parMatrix.m[1] + parVect.y* parMatrix.m[4] +parVect.z* parMatrix.m[7];
+	result.z = parVect.x* parMatrix.m[2] + parVect.y* parMatrix.m[5] +parVect.z* parMatrix.m[8];
+	return result;
+}
+
+// Vers le stream
+template<typename T>
+std::ostream& operator<< (std::ostream& os, const TMatrix3<T>& obj)
+{
+	os <<obj.m[0] <<", " <<obj.m[1]<<", "<<obj.m[2]<<",\n"
+	<<obj.m[4] <<", " <<obj.m[5]<<", "<<obj.m[6]<<",\n"
+	<<obj.m[8] <<", " <<obj.m[9]<<", "<<obj.m[10]<<")";
+	return os;
+} 
+
+
+
+
+// Matrix4
+template<typename T>
+TMatrix4<T>::TMatrix4(MatrixInit::Type reset)
+{
+	if (reset == MatrixInit::Zero)
+		resetToZero();
+	else if (reset == MatrixInit::Identity)
+		setIdentity();
+}
+
+// Initialisation par valeur
+template<typename T>
+TMatrix4<T>::TMatrix4(T a00, T a01, T a02, T a03, T a10, T a11, T a12, T a13, T a20, T a21, T a22, T a23, T a30, T a31, T a32, T a33)
+{
+	m[0] = a00;
+	m[1] = a01;
+	m[2] = a02;
+	m[3] = a03;
+	
+	m[4] = a10;
+	m[5] = a11;
+	m[6] = a12;
+	m[7] = a13;
+	
+	m[8] = a20;
+	m[9] = a21;
+	m[10] = a22;
+	m[11] = a23;
+	
+	m[12] = a30;
+	m[13] = a31;
+	m[14] = a32;
+	m[15] = a33;
+}
+
+// Constructeur de copie
+template<typename T>
+TMatrix4<T>::TMatrix4(const TMatrix4<T>& parMatrix)
+{
+	memcpy(m,parMatrix.m,16*sizeof(T));
+}
+
+// Conversion à partir d'un quaternion et d'une position
+template<typename T>
+TMatrix4<T>::TMatrix4(const TVec3<T>& parPosition, const TVec4<T>& parQuaternion)
+{
+	T qx = parQuaternion.x;
+	T qy = parQuaternion.y;
+	T qz = parQuaternion.z;
+	T qw = parQuaternion.w;
+	T qx2 = qx*qx;
+	T qy2 = qy*qy;
+	T qz2 = qz*qz;
+	m[0] = 1 - 2*qy2 - 2*qz2;
+	m[1] = 2*qx*qy - 2*qz*qw;
+	m[2] = 2*qx*qz + 2*qy*qw;
+	m[3] = parPosition.x;
+	
+	m[4] = 2*qx*qy + 2*qz*qw;
+	m[5] = 1 - 2*qx2 - 2*qz2;
+	m[6] = 2*qy*qz - 2*qx*qw;
+	m[7] = parPosition.y;
+	
+	m[8] = 2*qx*qz - 2*qy*qw;
+	m[9] = 2*qy*qz + 2*qx*qw;
+	m[10] = 1 - 2*qx2 - 2*qy2;
+	m[11] = parPosition.z;
+	
+	m[12] = 0;
+	m[13] = 0;
+	m[14] = 0;
+	m[15] = 1;	
+}
+
+//Destructeur
+template<typename T>
+TMatrix4<T>::~TMatrix4()
+{
+	//RAF
+}
+
+// Calcul de la transposée
+template<typename T>
+TMatrix4<T> TMatrix4<T>::transpose()
+{
+	TMatrix4<T> result;
+	result.m[0] = m[0];
+	result.m[1] = m[4];
+	result.m[2] = m[8];
+	result.m[3] = m[12];
+	
+	result.m[4] = m[1];
+	result.m[5] = m[5];
+	result.m[6] = m[9];
+	result.m[7] = m[13];
+	
+	result.m[8] = m[2];
+	result.m[9] = m[6];
+	result.m[10] = m[10];
+	result.m[11] = m[14];
+	
+	result.m[12] = m[3];
+	result.m[13] = m[7];
+	result.m[14] = m[11];
+	result.m[15] = m[15];
+	return result;
+}
+
+// Calcul comme matrice de perspective
+template<typename T>
+void TMatrix4<T>::AsPerspective(T parFovy, T parAspect, T parNear, T parFar)
+{
+	T f = 1/tan(parFovy*3.14/360.0);
+	m[0] = f/parAspect;
+	m[1] = 0.0;
+	m[2] = 0.0;
+	m[3] = 0.0;
+	
+	m[4] = 0.0;
+	m[5] = f;
+	m[6] = 0.0;
+	m[7] = 0.0;
+	
+	m[8] = 0.0;
+	m[9] = 0.0;
+	m[10] = (parFar+parNear)/(parNear-parFar);
+	m[11] = (2*parFar*parNear)/(parNear-parFar);
+	
+	m[12] = 0.0;
+	m[13] = 0.0;
+	m[14] = -1;
+	m[15] = 0.0;
+}
+
+// Defintion en tant qu'identitée
+template<typename T>
+void TMatrix4<T>::setIdentity()
+{	
+	m[0] = 1.0;
+	m[1] = 0.0;
+	m[2] = 0.0;
+	m[3] = 0.0;
+	
+	m[4] = 0.0;
+	m[5] = 1.0;
+	m[6] = 0.0;
+	m[7] = 0.0;
+	
+	m[8] = 0.0;
+	m[9] = 0.0;
+	m[10] = 1.0;
+	m[11] = 0.0;
+	
+	m[12] = 0.0;
+	m[13] = 0.0;
+	m[14] = 0.0;
+	m[15] = 1.0;
+}
+
+//Calcul du determinant
+template<typename T>
+T TMatrix4<T>::det() const
+{
+	//TODO
+	return 0.0;
+}
+
+// Mise à zero de toutes les valeurs
+template<typename T>
+void TMatrix4<T>::resetToZero()
+{
+	m[0] = 0.0;
+	m[1] = 0.0;
+	m[2] = 0.0;
+	m[3] = 0.0;
+
+	m[4] = 0.0;
+	m[5] = 0.0;
+	m[6] = 0.0;
+	m[7] = 0.0;
+	
+	m[8] = 0.0;
+	m[9] = 0.0;
+	m[10] = 0.0;
+	m[11] = 0.0;
+
+	m[12] = 0.0;
+	m[13] = 0.0;
+	m[14] = 0.0;
+	m[15] = 0.0;
+}
+
+//Récupération de la translation
+template<typename T>
+TVec3<T> TMatrix4<T>::getTranslate() const 
+{
+	// IL Y AUN PROBLEME ICI TODO
+	return TVec3<T>(m[3],m[7],m[11]);
+}
+
+// Recuperation des axes
+template<typename T>
+TVec3<T> TMatrix4<T>::xAxis() const 
+{
+	return TVec3<T>(m[0],m[4],m[8]);
+}
+
+template<typename T>
+TVec3<T> TMatrix4<T>::yAxis() const 
+{
+	return TVec3<T>(m[1],m[5],m[9]);
+}
+
+template<typename T>
+TVec3<T> TMatrix4<T>::zAxis() const 
+{
+	return TVec3<T>(m[2],m[6],m[10]);
+}
+
+// Surcharge de l'oeparteur de multiplication
+template<typename T>
+TVec3<T> operator*(const TMatrix4<T>& parMatrix, const TVec3<T>& parVect)
+{
+	TVec3<T> result(0.0);
+	result.x = parVect.x*parMatrix.m[0] + parVect.y*parMatrix.m[1] +parVect.z*parMatrix.m[2];
+	result.y = parVect.x*parMatrix.m[4] + parVect.y*parMatrix.m[5] +parVect.z*parMatrix.m[6];
+	result.z = parVect.x*parMatrix.m[8] + parVect.y*parMatrix.m[9] +parVect.z*parMatrix.m[10];
+	return result;
+}
+
+template<typename T>
+TVec3<T> operator*( const TVec3<T>& parVect, const TMatrix4<T>& parMatrix)
+{
+	TVec3<T> result(0.0);
+	result.x = parVect.x*parMatrix.m[0] + parVect.y*parMatrix.m[4] +parVect.z*parMatrix.m[8];
+	result.y = parVect.x*parMatrix.m[1] + parVect.y*parMatrix.m[5] +parVect.z*parMatrix.m[9];
+	result.z = parVect.x*parMatrix.m[2] + parVect.y*parMatrix.m[6] +parVect.z*parMatrix.m[10];
+	return result;
+}
+
+// Definition comme une translation
+template<typename T>
+TMatrix4<T> TMatrix4<T>::translate(const TVec4<T>& parVector)
+{
+	TMatrix4<T> result(MatrixInit::None);
+	result.m[0] = 1.0;
+	result.m[1] = 0.0;
+	result.m[2] = 0.0;
+	result.m[3] = parVector.x;
+
+	result.m[4] = 0.0;
+	result.m[5] = 1.0;
+	result.m[6] = 0.0;
+	result.m[7] = parVector.y;
+	
+	result.m[8] = 0.0;
+	result.m[9] = 0.0;
+	result.m[10] = 1.0;
+	result.m[11] = parVector.z;
+
+	result.m[12] = 0.0;
+	result.m[13] = 0.0;
+	result.m[14] = 0.0;
+	result.m[15] = parVector.w;
+	return result;
+}
+
+template<typename T>
+TMatrix4<T> TMatrix4<T>::translate(const TVec3<T>& parVector)
+{
+	TMatrix4<T> result(MatrixInit::None);
+	result.m[0] = 1.0;
+	result.m[1] = 0.0;
+	result.m[2] = 0.0;
+	result.m[3] = parVector.x;
+
+	result.m[4] = 0.0;
+	result.m[5] = 1.0;
+	result.m[6] = 0.0;
+	result.m[7] = parVector.y;
+	
+	result.m[8] = 0.0;
+	result.m[9] = 0.0;
+	result.m[10] = 1.0;
+	result.m[11] = parVector.z;
+
+	result.m[12] = 0.0;
+	result.m[13] = 0.0;
+	result.m[14] = 0.0;
+	result.m[15] = 1.0;
+	return result;
+}
+
+// Defition come une rotation
+template<typename T>
+TMatrix4<T> TMatrix4<T>::rotateXAxis(T parAngle)
+{
+	T cosVal = cos(parAngle);
+	T sinVal = sin(parAngle);
+	TMatrix4<T> result(MatrixInit::None);
+	result.m[0] = 1.0;
+	result.m[1] = 0.0;
+	result.m[2] = 0.0;
+	result.m[3] = 0.0;
+
+	result.m[4] = 0.0;
+	result.m[5] = cosVal;
+	result.m[6] = -sinVal;
+	result.m[7] = 0.0;
+	
+	result.m[8] = 0.0;
+	result.m[9] = sinVal;
+	result.m[10] = cosVal;
+	result.m[11] = 0.0;
+
+	result.m[12] = 0.0;
+	result.m[13] = 0.0;
+	result.m[14] = 0.0;
+	result.m[15] = 1.0;
+	return result;
+}
+
+template<typename T>
+TMatrix4<T> TMatrix4<T>::rotateYAxis(T parAngle)
+{
+	T cosVal = cos(parAngle);
+	T sinVal = sin(parAngle);
+	TMatrix4<T> result(MatrixInit::None);
+	result.m[0] = cosVal;
+	result.m[1] = 0.0;
+	result.m[2] = sinVal;
+	result.m[3] = 0.0;
+
+	result.m[4] = 0.0;
+	result.m[5] = 1.0;
+	result.m[6] = 0.0;
+	result.m[7] = 0.0;
+	
+	result.m[8] = -sinVal;
+	result.m[9] = 0.0;
+	result.m[10] = cosVal;
+	result.m[11] = 0.0;
+
+	result.m[12] = 0.0;
+	result.m[13] = 0.0;
+	result.m[14] = 0.0;
+	result.m[15] = 1.0;
+	return result;
+}
+
+template<typename T>
+TMatrix4<T> TMatrix4<T>::rotateZAxis(T parAngle)
+{
+	T cosVal = cos(parAngle);
+	T sinVal = sin(parAngle);
+	TMatrix4<T> result(MatrixInit::None);
+	result.m[0] = cosVal;
+	result.m[1] = -sinVal;
+	result.m[2] = 0.0;
+	result.m[3] = 0.0;
+
+	result.m[4] = sinVal;
+	result.m[5] = cosVal;
+	result.m[6] = 0.0;
+	result.m[7] = 0.0;
+	
+	result.m[8] = 0.0;
+	result.m[9] = 0.0;
+	result.m[10] = 1.0;
+	result.m[11] = 0.0;
+
+	result.m[12] = 0.0;
+	result.m[13] = 0.0;
+	result.m[14] = 0.0;
+	result.m[15] = 1.0;
+	return result;
+}
+
+// Affectation
+template<typename T>
+TMatrix4<T>& TMatrix4<T>::operator=(const TMatrix4<T>& parMatrix)
+{
+	memcpy(m, parMatrix.m, 16*sizeof(T));
+	return *this;
+}
+
+// Multiplication
+template<typename T>
+TMatrix4<T> TMatrix4<T>::operator*(const TMatrix4<T>& parMatrix ) const
+{
+	TMatrix4<T> result(MatrixInit::None);
+	result.m[0] = m[0] * parMatrix.m[0] + m[1] * parMatrix.m[4] + m[2] * parMatrix.m[8] + m[3] * parMatrix.m[12]; 
+	result.m[1] = m[0] * parMatrix.m[1] + m[1] * parMatrix.m[5] + m[2] * parMatrix.m[9] + m[3] * parMatrix.m[13]; 
+	result.m[2] = m[0] * parMatrix.m[2] + m[1] * parMatrix.m[6] + m[2] * parMatrix.m[10] + m[3] * parMatrix.m[14]; 
+	result.m[3] = m[0] * parMatrix.m[3] + m[1] * parMatrix.m[7] + m[2] * parMatrix.m[11] + m[3] * parMatrix.m[15]; 
+	result.m[4] = m[4] * parMatrix.m[0] + m[5] * parMatrix.m[4] + m[6] * parMatrix.m[8] + m[7] * parMatrix.m[12]; 
+	result.m[5] = m[4] * parMatrix.m[1] + m[5] * parMatrix.m[5] + m[6] * parMatrix.m[9] + m[7] * parMatrix.m[13]; 
+	result.m[6] = m[4] * parMatrix.m[2] + m[5] * parMatrix.m[6] + m[6] * parMatrix.m[10] + m[7] * parMatrix.m[14]; 
+	result.m[7] = m[4] * parMatrix.m[3] + m[5] * parMatrix.m[7] + m[6] * parMatrix.m[11] + m[7] * parMatrix.m[15]; 
+	result.m[8] = m[8] * parMatrix.m[0] + m[9] * parMatrix.m[4] + m[10] * parMatrix.m[8] + m[11] * parMatrix.m[12]; 
+	result.m[9] = m[8] * parMatrix.m[1] + m[9] * parMatrix.m[5] + m[10] * parMatrix.m[9] + m[11] * parMatrix.m[13]; 
+	result.m[10] = m[8] * parMatrix.m[2] + m[9] * parMatrix.m[6] + m[10] * parMatrix.m[10] + m[11] * parMatrix.m[14]; 
+	result.m[11] = m[8] * parMatrix.m[3] + m[9] * parMatrix.m[7] + m[10] * parMatrix.m[11] + m[11] * parMatrix.m[15]; 
+	result.m[12] = m[12] * parMatrix.m[0] + m[13] * parMatrix.m[4] + m[14] * parMatrix.m[8] + m[15] * parMatrix.m[12]; 
+	result.m[13] = m[12] * parMatrix.m[1] + m[13] * parMatrix.m[5] + m[14] * parMatrix.m[9] + m[15] * parMatrix.m[13]; 
+	result.m[14] = m[12] * parMatrix.m[2] + m[13] * parMatrix.m[6] + m[14] * parMatrix.m[10] + m[15] * parMatrix.m[14]; 
+	result.m[15] = m[12] * parMatrix.m[3] + m[13] * parMatrix.m[7] + m[14] * parMatrix.m[11] + m[15] * parMatrix.m[15]; 
+	return result;
+}
+
+// inversion
+template<typename T>
+TMatrix4<T> TMatrix4<T>::inverse(const TMatrix4<T>& parMatrix)
+{
+	TMatrix4<T> inverseMatrix;
+    double det;
+    int i;
+
+    inverseMatrix.m[0] = parMatrix.m[5]  * parMatrix.m[10] * parMatrix.m[15] - 
+             parMatrix.m[5]  * parMatrix.m[11] * parMatrix.m[14] - 
+             parMatrix.m[9]  * parMatrix.m[6]  * parMatrix.m[15] + 
+             parMatrix.m[9]  * parMatrix.m[7]  * parMatrix.m[14] +
+             parMatrix.m[13] * parMatrix.m[6]  * parMatrix.m[11] - 
+             parMatrix.m[13] * parMatrix.m[7]  * parMatrix.m[10];
+
+    inverseMatrix.m[4] = -parMatrix.m[4]  * parMatrix.m[10] * parMatrix.m[15] + 
+              parMatrix.m[4]  * parMatrix.m[11] * parMatrix.m[14] + 
+              parMatrix.m[8]  * parMatrix.m[6]  * parMatrix.m[15] - 
+              parMatrix.m[8]  * parMatrix.m[7]  * parMatrix.m[14] - 
+              parMatrix.m[12] * parMatrix.m[6]  * parMatrix.m[11] + 
+              parMatrix.m[12] * parMatrix.m[7]  * parMatrix.m[10];
+
+    inverseMatrix.m[8] = parMatrix.m[4]  * parMatrix.m[9] * parMatrix.m[15] - 
+             parMatrix.m[4]  * parMatrix.m[11] * parMatrix.m[13] - 
+             parMatrix.m[8]  * parMatrix.m[5] * parMatrix.m[15] + 
+             parMatrix.m[8]  * parMatrix.m[7] * parMatrix.m[13] + 
+             parMatrix.m[12] * parMatrix.m[5] * parMatrix.m[11] - 
+             parMatrix.m[12] * parMatrix.m[7] * parMatrix.m[9];
+
+    inverseMatrix.m[12] = -parMatrix.m[4]  * parMatrix.m[9] * parMatrix.m[14] + 
+               parMatrix.m[4]  * parMatrix.m[10] * parMatrix.m[13] +
+               parMatrix.m[8]  * parMatrix.m[5] * parMatrix.m[14] - 
+               parMatrix.m[8]  * parMatrix.m[6] * parMatrix.m[13] - 
+               parMatrix.m[12] * parMatrix.m[5] * parMatrix.m[10] + 
+               parMatrix.m[12] * parMatrix.m[6] * parMatrix.m[9];
+
+    inverseMatrix.m[1] = -parMatrix.m[1]  * parMatrix.m[10] * parMatrix.m[15] + 
+              parMatrix.m[1]  * parMatrix.m[11] * parMatrix.m[14] + 
+              parMatrix.m[9]  * parMatrix.m[2] * parMatrix.m[15] - 
+              parMatrix.m[9]  * parMatrix.m[3] * parMatrix.m[14] - 
+              parMatrix.m[13] * parMatrix.m[2] * parMatrix.m[11] + 
+              parMatrix.m[13] * parMatrix.m[3] * parMatrix.m[10];
+
+    inverseMatrix.m[5] = parMatrix.m[0]  * parMatrix.m[10] * parMatrix.m[15] - 
+             parMatrix.m[0]  * parMatrix.m[11] * parMatrix.m[14] - 
+             parMatrix.m[8]  * parMatrix.m[2] * parMatrix.m[15] + 
+             parMatrix.m[8]  * parMatrix.m[3] * parMatrix.m[14] + 
+             parMatrix.m[12] * parMatrix.m[2] * parMatrix.m[11] - 
+             parMatrix.m[12] * parMatrix.m[3] * parMatrix.m[10];
+
+    inverseMatrix.m[9] = -parMatrix.m[0]  * parMatrix.m[9] * parMatrix.m[15] + 
+              parMatrix.m[0]  * parMatrix.m[11] * parMatrix.m[13] + 
+              parMatrix.m[8]  * parMatrix.m[1] * parMatrix.m[15] - 
+              parMatrix.m[8]  * parMatrix.m[3] * parMatrix.m[13] - 
+              parMatrix.m[12] * parMatrix.m[1] * parMatrix.m[11] + 
+              parMatrix.m[12] * parMatrix.m[3] * parMatrix.m[9];
+
+    inverseMatrix.m[13] = parMatrix.m[0]  * parMatrix.m[9] * parMatrix.m[14] - 
+              parMatrix.m[0]  * parMatrix.m[10] * parMatrix.m[13] - 
+              parMatrix.m[8]  * parMatrix.m[1] * parMatrix.m[14] + 
+              parMatrix.m[8]  * parMatrix.m[2] * parMatrix.m[13] + 
+              parMatrix.m[12] * parMatrix.m[1] * parMatrix.m[10] - 
+              parMatrix.m[12] * parMatrix.m[2] * parMatrix.m[9];
+
+    inverseMatrix.m[2] = parMatrix.m[1]  * parMatrix.m[6] * parMatrix.m[15] - 
+             parMatrix.m[1]  * parMatrix.m[7] * parMatrix.m[14] - 
+             parMatrix.m[5]  * parMatrix.m[2] * parMatrix.m[15] + 
+             parMatrix.m[5]  * parMatrix.m[3] * parMatrix.m[14] + 
+             parMatrix.m[13] * parMatrix.m[2] * parMatrix.m[7] - 
+             parMatrix.m[13] * parMatrix.m[3] * parMatrix.m[6];
+
+    inverseMatrix.m[6] = -parMatrix.m[0]  * parMatrix.m[6] * parMatrix.m[15] + 
+              parMatrix.m[0]  * parMatrix.m[7] * parMatrix.m[14] + 
+              parMatrix.m[4]  * parMatrix.m[2] * parMatrix.m[15] - 
+              parMatrix.m[4]  * parMatrix.m[3] * parMatrix.m[14] - 
+              parMatrix.m[12] * parMatrix.m[2] * parMatrix.m[7] + 
+              parMatrix.m[12] * parMatrix.m[3] * parMatrix.m[6];
+
+    inverseMatrix.m[10] = parMatrix.m[0]  * parMatrix.m[5] * parMatrix.m[15] - 
+              parMatrix.m[0]  * parMatrix.m[7] * parMatrix.m[13] - 
+              parMatrix.m[4]  * parMatrix.m[1] * parMatrix.m[15] + 
+              parMatrix.m[4]  * parMatrix.m[3] * parMatrix.m[13] + 
+              parMatrix.m[12] * parMatrix.m[1] * parMatrix.m[7] - 
+              parMatrix.m[12] * parMatrix.m[3] * parMatrix.m[5];
+
+    inverseMatrix.m[14] = -parMatrix.m[0]  * parMatrix.m[5] * parMatrix.m[14] + 
+               parMatrix.m[0]  * parMatrix.m[6] * parMatrix.m[13] + 
+               parMatrix.m[4]  * parMatrix.m[1] * parMatrix.m[14] - 
+               parMatrix.m[4]  * parMatrix.m[2] * parMatrix.m[13] - 
+               parMatrix.m[12] * parMatrix.m[1] * parMatrix.m[6] + 
+               parMatrix.m[12] * parMatrix.m[2] * parMatrix.m[5];
+
+    inverseMatrix.m[3] = -parMatrix.m[1] * parMatrix.m[6] * parMatrix.m[11] + 
+              parMatrix.m[1] * parMatrix.m[7] * parMatrix.m[10] + 
+              parMatrix.m[5] * parMatrix.m[2] * parMatrix.m[11] - 
+              parMatrix.m[5] * parMatrix.m[3] * parMatrix.m[10] - 
+              parMatrix.m[9] * parMatrix.m[2] * parMatrix.m[7] + 
+              parMatrix.m[9] * parMatrix.m[3] * parMatrix.m[6];
+
+    inverseMatrix.m[7] = parMatrix.m[0] * parMatrix.m[6] * parMatrix.m[11] - 
+             parMatrix.m[0] * parMatrix.m[7] * parMatrix.m[10] - 
+             parMatrix.m[4] * parMatrix.m[2] * parMatrix.m[11] + 
+             parMatrix.m[4] * parMatrix.m[3] * parMatrix.m[10] + 
+             parMatrix.m[8] * parMatrix.m[2] * parMatrix.m[7] - 
+             parMatrix.m[8] * parMatrix.m[3] * parMatrix.m[6];
+
+    inverseMatrix.m[11] = -parMatrix.m[0] * parMatrix.m[5] * parMatrix.m[11] + 
+               parMatrix.m[0] * parMatrix.m[7] * parMatrix.m[9] + 
+               parMatrix.m[4] * parMatrix.m[1] * parMatrix.m[11] - 
+               parMatrix.m[4] * parMatrix.m[3] * parMatrix.m[9] - 
+               parMatrix.m[8] * parMatrix.m[1] * parMatrix.m[7] + 
+               parMatrix.m[8] * parMatrix.m[3] * parMatrix.m[5];
+
+    inverseMatrix.m[15] = parMatrix.m[0] * parMatrix.m[5] * parMatrix.m[10] - 
+              parMatrix.m[0] * parMatrix.m[6] * parMatrix.m[9] - 
+              parMatrix.m[4] * parMatrix.m[1] * parMatrix.m[10] + 
+              parMatrix.m[4] * parMatrix.m[2] * parMatrix.m[9] + 
+              parMatrix.m[8] * parMatrix.m[1] * parMatrix.m[6] - 
+              parMatrix.m[8] * parMatrix.m[2] * parMatrix.m[5];
+
+    det = parMatrix.m[0] * inverseMatrix.m[0] + parMatrix.m[1] * inverseMatrix.m[4] + parMatrix.m[2] * inverseMatrix.m[8] + parMatrix.m[3] * inverseMatrix.m[12];
+
+    if (det == 0)
+    {
+    	PRINT_RED("Non invertible matrix");
+        return inverseMatrix;
+    }
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++)
+        inverseMatrix.m[i] = inverseMatrix.m[i] * det;
+
+	return inverseMatrix;
+}
+
+// Vers une table de flottants
+template<typename T>
+void TMatrix4<T>::toTable(float* content) const
+{
+	content[0] = (float)(m[0]);
+	content[1] = (float)(m[1]);
+	content[2] = (float)(m[2]);
+	content[3] = (float)(m[3]);
+
+	content[4] = (float)(m[4]);
+	content[5] = (float)(m[5]);
+	content[6] = (float)(m[6]);
+	content[7] = (float)(m[7]);
+
+	content[8] = (float)(m[8]);
+	content[9] = (float)(m[9]);
+	content[10] = (float)(m[10]);
+	content[11] = (float)(m[11]);
+
+	content[12] = (float)(m[12]);
+	content[13] = (float)(m[13]);
+	content[14] = (float)(m[14]);
+	content[15] = (float)(m[15]);
+}
+// Conversion en string
+template <typename T>
+std::string TMatrix4<T>::toString() const
+{
+	std::string result("");
+	result+=convertToString(m[0]);
+	result+=" ";
+	result+=convertToString(m[1]);
+	result+=" ";
+	result+=convertToString(m[2]);
+	result+=" ";
+	result+=convertToString(m[3]);
+	result+=" ";
+	result+=convertToString(m[4]);
+	result+=" ";
+	result+=convertToString(m[5]);
+	result+=" ";
+	result+=convertToString(m[6]);
+	result+=" ";
+	result+=convertToString(m[7]);
+	result+=" ";
+	result+=convertToString(m[8]);
+	result+=" ";
+	result+=convertToString(m[9]);
+	result+=" ";
+	result+=convertToString(m[10]);
+	result+=" ";
+	result+=convertToString(m[11]);
+	result+=" ";
+	result+=convertToString(m[12]);
+	result+=" ";
+	result+=convertToString(m[13]);
+	result+=" ";
+	result+=convertToString(m[14]);
+	result+=" ";
+	result+=convertToString(m[15]);
+	return result;
+}
+
+//Vers le stream
+template<typename T>
+std::ostream& operator<< (std::ostream& os, const TMatrix4<T>& obj) 
+{
+	// os << "TMatrix4("<<obj.m[0] <<", " <<obj.m[1]<<", "<<obj.m[2]<<", " << obj.m[3]<<",\n"
+	os <<obj.m[0] <<", " <<obj.m[1]<<", "<<obj.m[2]<<", " << obj.m[3]<<",\n"
+		<<obj.m[4] <<", " <<obj.m[5]<<", "<<obj.m[6]<<", " << obj.m[7]<<",\n"
+		<<obj.m[8] <<", " <<obj.m[9]<<", "<<obj.m[10]<<", " << obj.m[11]<<",\n"
+		<<obj.m[12] <<", " <<obj.m[13]<<", "<<obj.m[14]<<", " << obj.m[15]<<")";
+	return os;
+}     
+
+// Construction de la matrice de changemenr de base
+template<typename T>
+TMatrix3<T> buildInverseMatrix(TVec3<T> parP0, TVec3<T> parP1, TVec3<T> parP2, TVec3<T> parP3)
+{
+	TVec3<T> v1 = (parP1-parP0);
+	TVec3<T> v2 = (parP2-parP0);
+	TVec3<T> v3 = (parP3-parP0);
+	TMatrix3<T> P(v1, v2, v3);
+	TMatrix3<T> P_1 = inverse(P);
+	return P_1;
+}
+
+// Conversion en quaternion
+template<typename T>
+TVec4<T> matrixToQuaternion(const TMatrix4<T>& parMatrix)
+{
+	TVec4<T> q(0.0,0.0,0.0,0.0);
+	float trace = parMatrix.m[0] + parMatrix.m[5] + parMatrix.m[10]; 
+	if( trace > 0 ) 
+	{
+		float s = 0.5f / sqrtf(trace+ 1.0f);
+		q.w = 0.25f / s;
+		q.x = ( parMatrix.m[9] - parMatrix.m[6] ) * s;
+		q.y = ( parMatrix.m[2] - parMatrix.m[8] ) * s;
+		q.z = ( parMatrix.m[4] - parMatrix.m[1] ) * s;
+ 	} 
+ 	else 
+ 	{
+		if ( parMatrix.m[0] > parMatrix.m[5] && parMatrix.m[0] > parMatrix.m[10] ) 
+		{
+			float s = 2.0f * sqrtf( 1.0f + parMatrix.m[0] - parMatrix.m[5] - parMatrix.m[10]);
+			q.w = (parMatrix.m[9] - parMatrix.m[6] ) / s;
+			q.x = 0.25f * s;
+			q.y = (parMatrix.m[1] + parMatrix.m[4] ) / s;
+			q.z = (parMatrix.m[2] + parMatrix.m[8] ) / s;
+		} 
+		else if (parMatrix.m[5] > parMatrix.m[10]) 
+		{
+			float s = 2.0f * sqrtf( 1.0f + parMatrix.m[5] - parMatrix.m[0] - parMatrix.m[10]);
+			q.w = (parMatrix.m[2] - parMatrix.m[8] ) / s;
+			q.x = (parMatrix.m[1] + parMatrix.m[4] ) / s;
+			q.y = 0.25f * s;
+			q.z = (parMatrix.m[6] + parMatrix.m[9] ) / s;
+		} 
+		else 
+		{
+			float s = 2.0f * sqrtf( 1.0f + parMatrix.m[10] - parMatrix.m[0] - parMatrix.m[5] );
+			q.w = (parMatrix.m[4] - parMatrix.m[1] ) / s;
+			q.x = (parMatrix.m[2] + parMatrix.m[8] ) / s;
+			q.y = (parMatrix.m[6] + parMatrix.m[9] ) / s;
+			q.z = 0.25f * s;
+    	}
+  	}
+  	return q;
+}
+
+ 

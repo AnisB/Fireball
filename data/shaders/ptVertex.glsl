@@ -1,15 +1,14 @@
 #version 330 
 
-uniform mat4 view;
-uniform mat4 projection;
+uniform mat4 projectionview;
 
-in vec3 position;
-in vec3 color;
+in vec4 position;
+in vec4 color;
 
-out vec3 colorF;
+out vec4 colorF;
 
 void main()
 { 
-	gl_Position = projection*view*vec4(position,1.0);
+	gl_Position = projectionview*vec4(position.xyz,1.0);
 	colorF = color;
 }  

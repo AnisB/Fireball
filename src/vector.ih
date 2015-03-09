@@ -1,0 +1,183 @@
+
+template<typename T>
+std::ostream& operator<< (std::ostream& os, const TVec2<T>& obj) 
+{
+	os <<"("<<obj.x <<", " <<obj.y<<") ";
+	return os;
+}     
+ 
+template<typename T>
+TVec2<T> operator-(const TVec2<T>& parV)
+{
+	return TVec2<T> (- parV.x, - parV.y);
+}
+
+template<typename T>
+TVec2<T> operator-(const TVec2<T>& parV0, const TVec2<T>& parV1)
+{
+	return TVec2<T> (parV0.x - parV1.x, parV0.y - parV1.y);
+}
+
+template<typename T>
+TVec2<T> operator+(const TVec2<T>& parV0, const TVec2<T>& parV1)
+{
+	return TVec2<T> (parV0.x + parV1.x, parV0.y + parV1.y);
+}
+
+
+template<typename T>
+T dot(const TVec2<T>& parVec1, const TVec2<T>& parVec2)
+{
+	return parVec1.x*parVec2.x + parVec1.y*parVec2.y;
+}
+
+
+template<typename T>
+T getDistance(TVec2<T> parP0, TVec2<T> parP1)
+{
+	return sqrt(pow(parP0.x-parP1.x,2.0) + pow(parP0.y-parP1.y,2.0));
+}
+
+template<typename T>
+TVec2<T> operator*(const TVec2<T>& parV, T parVal)
+{
+	return TVec2<T> (parV.x*parVal, parV.y*parVal);
+}
+template<typename T>
+TVec2<T> operator*( T parVal, const TVec2<T>& parV)
+{
+	return TVec2<T> (parV.x*parVal, parV.y*parVal);
+}
+
+template<typename T>
+TVec2<T> normalize(const TVec2<T>& parVec)
+{
+	T norm = parVec.norm();
+	TVec2<T> ret = parVec;
+	ret.x /= norm;
+	ret.y /= norm;
+	return ret;
+}
+
+template<typename T>
+std::ostream& operator<< (std::ostream& os, const TVec3<T>& obj) 
+{
+	os <<"("<<obj.x <<", " <<obj.y<<", "<<obj.z<<") ";
+	return os;
+}     
+ 
+template<typename T>
+TVec3<T> operator-(const TVec3<T>& parV)
+{
+	return TVec3<T> (- parV.x, - parV.y, - parV.z);
+}
+
+template<typename T>
+TVec3<T> operator-(const TVec3<T>& parV0, const TVec3<T>& parV1)
+{
+	return TVec3<T> (parV0.x - parV1.x, parV0.y - parV1.y, parV0.z - parV1.z);
+}
+
+template<typename T>
+TVec3<T> operator+(const TVec3<T>& parV0, const TVec3<T>& parV1)
+{
+	return TVec3<T> (parV0.x + parV1.x, parV0.y + parV1.y, parV0.z + parV1.z);
+}
+
+template<typename T>
+TVec3<T> cross(const TVec3<T>& parVec1, const TVec3<T>& parVec2)
+{
+	TVec3<T> ret (parVec1.y*parVec2.z - parVec2.y*parVec1.z, parVec1.z*parVec2.x - parVec2.z*parVec1.x,  parVec1.x*parVec2.y - parVec2.x*parVec1.y);
+	return ret;
+}
+
+template<typename T>
+T dot(const TVec3<T>& parVec1, const TVec3<T>& parVec2)
+{
+	return parVec1.x*parVec2.x + parVec1.y*parVec2.y +  parVec1.z*parVec2.z;
+}
+
+
+template<typename T>
+T getDistance(TVec3<T> parP0, TVec3<T> parP1)
+{
+	return sqrt(pow(parP0.x-parP1.x,2.0) + pow(parP0.y-parP1.y,2.0) +  pow(parP0.z-parP1.z,2.0));
+}
+
+template<typename T>
+TVec3<T> operator*(const TVec3<T>& parV, T parVal)
+{
+	return TVec3<T> (parV.x*parVal, parV.y*parVal, parV.z*parVal);
+}
+template<typename T>
+TVec3<T> operator*( T parVal, const TVec3<T>& parV)
+{
+	return TVec3<T> (parV.x*parVal, parV.y*parVal, parV.z*parVal);
+}
+
+template<typename T>
+TVec3<T> operator/(const TVec3<T>& parV, T parVal)
+{
+	return TVec3<T> (parV.x/parVal, parV.y/parVal, parV.z/parVal);
+}
+
+template<typename T>
+TVec3<T> operator/( T parVal, const TVec3<T>& parV)
+{
+	return TVec3<T> (parV.x/parVal, parV.y/parVal, parV.z/parVal);
+}
+
+
+template<typename T>
+TVec3<T> normalize(const TVec3<T>& parVec)
+{
+	T norm = parVec.norm();
+	TVec3<T> ret = parVec;
+	ret.x /= norm;
+	ret.y /= norm;
+	ret.z /= norm;
+	return ret;
+}
+
+
+template<typename T>
+TVec4<T> operator-(const TVec4<T>& parV0, const TVec4<T>& parV1)
+{
+	return TVec4<T> (parV0.x - parV1.x, parV0.y - parV1.y, parV0.z - parV1.z, parV0.w - parV1.w);
+}
+
+template<typename T>
+TVec4<T> operator+(const TVec4<T>& parV0, const TVec4<T>& parV1)
+{
+	return TVec4<T> (parV0.x + parV1.x, parV0.y + parV1.y, parV0.z + parV1.z, parV0.w + parV1.w);
+}
+
+template<typename T>
+TVec4<T> operator*(const TVec4<T>& parV, T parVal)
+{
+	return TVec4<T> (parV.x*parVal, parV.y*parVal, parV.z*parVal, parV.w*parVal);
+}
+
+template<typename T>
+TVec4<T> operator*( T parVal, const TVec4<T>& parV)
+{
+	return TVec4<T> (parV.x*parVal, parV.y*parVal, parV.z*parVal, parV.w*parVal);
+}
+
+template<typename T>
+TVec4<T> operator/(const TVec4<T>& parV, T parVal)
+{
+	return TVec4<T> (parV.x/parVal, parV.y/parVal, parV.z/parVal, parV.w/parVal);
+}
+
+template<typename T>
+TVec4<T> normalize(const TVec4<T>& parVec)
+{
+	T norm = parVec.norm();
+	TVec4<T> ret = parVec;
+	ret.x /= norm;
+	ret.y /= norm;
+	ret.z /= norm;
+	ret.w /= norm;
+	return ret;
+}

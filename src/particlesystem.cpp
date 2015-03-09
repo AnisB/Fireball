@@ -6,8 +6,8 @@ TParticleSystem::TParticleSystem(uint parNbParticles)
 : FNbParticles(parNbParticles)
 {
 	FPositions = new cl_float3[FNbParticles*3](); 
-	FVelocity = FPositions + FNbParticles; 
-	FColors = FVelocity + FNbParticles;
+	FColors = FPositions + FNbParticles;
+	FVelocity = FColors + FNbParticles; 
 	FLifetime = new cl_float[FNbParticles];
 }
 
@@ -104,7 +104,7 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
     PRINT_ORANGE("Parameters injected");
 
     size_t local = CL_LOCAL_DIM;
-    size_t global = CL_GLOBAL_DIM;
+    size_t global = 20;
     CL_ERROR_FLAG = clEnqueueNDRangeKernel(clData.commands, initKernel, 1, NULL, &global , &local, 0, NULL, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
@@ -130,10 +130,10 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
     }
 
 
-    // for(int i =0; i < FNbParticles; i++)
-    // {
-    // 	std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2]<<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2]<<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<std::endl;
-    // }
+    for(int i =0; i < FNbParticles; i++)
+    {
+        std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2]<<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2]<<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
+    }  
 
     updateKernel = clCreateKernel(parClProgram.program, "update", &CL_ERROR_FLAG);
 	CL_ERROR_FLAG  = clSetKernelArg(updateKernel, 0, sizeof(cl_mem), &FPosBuffer);
@@ -156,19 +156,16 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
 	glGenVertexArrays (1, &FVAO);
 	glBindVertexArray (FVAO);
 	
-	glGenBuffers(2, FVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, FVBO[0]);
+	glGenBuffers(1, &FVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, FVBO);
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles, FPosBuffer, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles*2, FPosBuffer, GL_DYNAMIC_DRAW);
 	GLuint posAtt = glGetAttribLocation(FShader.FProgramID, "position");
-	glEnableVertexAttribArray (posAtt);
-	glVertexAttribPointer (posAtt, 4, GL_FLOAT, GL_FALSE, 0, 0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, FVBO[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles, FPosBuffer, GL_DYNAMIC_DRAW);
 	GLuint colorAtt = glGetAttribLocation(FShader.FProgramID, "color");
+	glEnableVertexAttribArray (posAtt);
 	glEnableVertexAttribArray (colorAtt);
-	glVertexAttribPointer (colorAtt, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer (posAtt, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer (colorAtt, 4, GL_FLOAT, GL_FALSE, 0, (void*)(sizeof(cl_float3)*FNbParticles));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray (0);
@@ -178,14 +175,14 @@ bool TParticleSystem::initParticleSystem(const TOpenCLData& clData, const TOpenC
 
 void TParticleSystem::update(float parTime, const TOpenCLData& clData, const TOpenCLProgram& parClProgram)
 {
-    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 9, sizeof(parTime), &FNbParticles);
+    CL_ERROR_FLAG |= clSetKernelArg(updateKernel, 9, sizeof(parTime), &parTime);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
         PRINT_RED("Error in argument.");
         return;
     }
     size_t local = CL_LOCAL_DIM;
-    size_t global = CL_GLOBAL_DIM;
+    size_t global = 20;
     CL_ERROR_FLAG = clEnqueueNDRangeKernel(clData.commands, updateKernel, 1, NULL, &global, &local, 0, NULL, NULL);
     if (CL_ERROR_FLAG != CL_SUCCESS)
     {
@@ -195,16 +192,23 @@ void TParticleSystem::update(float parTime, const TOpenCLData& clData, const TOp
     clFinish(clData.commands);
 
     CL_ERROR_FLAG = clEnqueueReadBuffer( clData.commands, FPosBuffer, CL_TRUE, 0, sizeof(cl_float3) * FNbParticles, FPositions, 0, NULL, NULL );  
-	glBindBuffer(GL_ARRAY_BUFFER, FVBO[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles, FPosBuffer, GL_DYNAMIC_DRAW);
+
+    glBindBuffer(GL_ARRAY_BUFFER, FVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cl_float3)*FNbParticles*2, FPosBuffer, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+    for(int i =0; i < FNbParticles; i++)
+    {
+        std::cout <<"pos "<<FPositions[i].s[0]<<" "<<FPositions[i].s[1]<<" "<<FPositions[i].s[2]<<" veloc "<<FVelocity[i].s[0]<<" "<<FVelocity[i].s[1]<<" "<<FVelocity[i].s[2]<<" color "<<FColors[i].s[0]<<" "<<FColors[i].s[1]<<" "<<FColors[i].s[2]<<" "<<FLifetime[i]<<std::endl;
+    }   
 }
-
-void TParticleSystem::draw()
+void TParticleSystem::draw(const TMatrix4<double>& parProjectionView)
 {
 	glUseProgram(FShader.FProgramID);
   	glBindVertexArray (FVAO);
+	float mat[16];
+	parProjectionView.toTable(&mat[0]);
+    glUniformMatrix4fv(glGetUniformLocation(FShader.FProgramID, "projectionview"),1,true, mat);
 	glDrawElements(GL_POINTS, FNbParticles, GL_UNSIGNED_INT, 0);
   	glBindVertexArray (0);
 	glUseProgram(0);
